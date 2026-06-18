@@ -22,7 +22,7 @@ export default async function AdminDashboard() {
     }
   });
   
-  const totalSales = nonCancelledOrders.reduce((acc: number, o) => acc + o.totalAmount, 0);
+  const totalSales = nonCancelledOrders.reduce((acc: number, o: { totalAmount: number }) => acc + o.totalAmount, 0);
 
   // 3. Fetch 5 recent orders
   const recentOrders = await prisma.order.findMany({
