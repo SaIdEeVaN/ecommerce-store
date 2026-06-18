@@ -1,14 +1,25 @@
 const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 
 const dbUrl = process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:51214/template1?sslmode=disable";
-const pool = new Pool({
-  connectionString: dbUrl
-});
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const isLocal = dbUrl.includes("localhost") || dbUrl.includes("127.0.0.1");
+
+let prisma;
+let pool;
+
+if (isLocal) {
+  const { PrismaPg } = require('@prisma/adapter-pg');
+  const { Pool } = require('pg');
+  pool = new Pool({ connectionString: dbUrl });
+  const adapter = new PrismaPg(pool);
+  prisma = new PrismaClient({ adapter });
+} else {
+  const { PrismaNeon } = require('@prisma/adapter-neon');
+  const { Pool: NeonPool } = require('@neondatabase/serverless');
+  pool = new NeonPool({ connectionString: dbUrl });
+  const adapter = new PrismaNeon(pool);
+  prisma = new PrismaClient({ adapter });
+}
 
 async function main() {
   console.log('Seeding database...');
