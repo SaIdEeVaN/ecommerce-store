@@ -130,7 +130,7 @@ export default async function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-850">
-                {recentOrders.map((order) => (
+                {recentOrders.map((order: any) => (
                   <tr key={order.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-950/10">
                     <td className="py-4 px-4 font-mono text-zinc-700 dark:text-zinc-300">{order.id}</td>
                     <td className="py-4 px-4">
