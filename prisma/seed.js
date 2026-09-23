@@ -15,45 +15,51 @@ if (isLocal) {
   prisma = new PrismaClient({ adapter });
 } else {
   const { PrismaNeon } = require('@prisma/adapter-neon');
-  const { Pool: NeonPool } = require('@neondatabase/serverless');
-  pool = new NeonPool({ connectionString: dbUrl });
-  const adapter = new PrismaNeon(pool);
+  const adapter = new PrismaNeon({ connectionString: dbUrl });
   prisma = new PrismaClient({ adapter });
 }
 
+// Non-destructive: only creates what is missing, so it is safe to run on every deploy.
 async function main() {
   console.log('Seeding database...');
 
-  // Clean existing data
-  await prisma.orderItem.deleteMany({});
-  await prisma.order.deleteMany({});
-  await prisma.product.deleteMany({});
-  await prisma.user.deleteMany({});
+  // Admin account. On a hosted database the credentials must come from env vars,
+  // since the local defaults below are public in the repo.
+  const adminEmail = process.env.ADMIN_EMAIL || (isLocal ? 'admin@store.com' : undefined);
+  const adminPlainPassword = process.env.ADMIN_PASSWORD || (isLocal ? 'admin123' : undefined);
 
-  // Hash passwords
-  const adminPassword = await bcrypt.hash('admin123', 10);
-  const userPassword = await bcrypt.hash('user123', 10);
+  if (adminEmail && adminPlainPassword) {
+    const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+    if (existingAdmin) {
+      console.log(`Admin ${adminEmail} already exists, leaving it unchanged.`);
+    } else {
+      await prisma.user.create({
+        data: {
+          email: adminEmail,
+          password: await bcrypt.hash(adminPlainPassword, 10),
+          name: 'Admin User',
+          role: 'ADMIN',
+        },
+      });
+      console.log(`Created admin ${adminEmail}.`);
+    }
+  } else {
+    console.log('ADMIN_EMAIL / ADMIN_PASSWORD not set, skipping admin account.');
+  }
 
-  // Create Users
-  const admin = await prisma.user.create({
-    data: {
-      email: 'admin@store.com',
-      password: adminPassword,
-      name: 'Admin User',
-      role: 'ADMIN',
-    },
-  });
-
-  const user = await prisma.user.create({
-    data: {
-      email: 'user@store.com',
-      password: userPassword,
-      name: 'Jane Doe',
-      role: 'USER',
-    },
-  });
-
-  console.log('Created users:', { admin: admin.email, user: user.email });
+  // Demo customer, local databases only
+  if (isLocal) {
+    await prisma.user.upsert({
+      where: { email: 'user@store.com' },
+      update: {},
+      create: {
+        email: 'user@store.com',
+        password: await bcrypt.hash('user123', 10),
+        name: 'Jane Doe',
+        role: 'USER',
+      },
+    });
+  }
 
   // Create Products
   const products = [
@@ -101,6 +107,11 @@ async function main() {
     },
   ];
 
+  if ((await prisma.product.count()) > 0) {
+    console.log('Products already exist, skipping sample products.');
+    return;
+  }
+
   for (const product of products) {
     await prisma.product.create({
       data: product,
@@ -117,5 +128,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-    await pool.end();
+    if (pool) await pool.end();
   });
