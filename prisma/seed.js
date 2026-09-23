@@ -105,20 +105,106 @@ async function main() {
       stock: 25,
       imageUrl: 'backpack',
     },
+
+    {
+      name: 'Nova 65% Wireless Keyboard',
+      description: 'A compact 65% mechanical keyboard with Bluetooth and 2.4GHz wireless, gasket-mounted plate, and a 4000mAh battery that lasts for weeks.',
+      price: 99.99,
+      stock: 45,
+      imageUrl: 'keyboard',
+    },
+    {
+      name: 'Stealth Low-Profile Keyboard',
+      description: 'An ultra-slim low-profile mechanical keyboard with quiet linear switches and an aluminium top case, built for fast, silent typing.',
+      price: 89.99,
+      stock: 30,
+      imageUrl: 'keyboard',
+    },
+    {
+      name: 'Titan Full-Size Keyboard',
+      description: 'A full-size mechanical keyboard with a dedicated numpad, media dial, magnetic wrist rest, and PBT double-shot keycaps.',
+      price: 149.99,
+      stock: 20,
+      imageUrl: 'keyboard',
+    },
+    {
+      name: 'Echo Studio Headphones',
+      description: 'Open-back studio headphones with 50mm drivers and a flat, natural sound signature for mixing, editing, and critical listening.',
+      price: 219.99,
+      stock: 18,
+      imageUrl: 'headset',
+    },
+    {
+      name: 'Pulse Wireless Gaming Headset',
+      description: 'A lightweight wireless gaming headset with a detachable noise-cancelling mic, 7.1 surround sound, and 30-hour battery life.',
+      price: 129.99,
+      stock: 40,
+      imageUrl: 'headset',
+    },
+    {
+      name: 'Aria Noise-Cancelling Headphones',
+      description: 'Foldable travel headphones with adaptive noise cancellation, multipoint Bluetooth, and a plush carry case.',
+      price: 159.99,
+      stock: 4,
+      imageUrl: 'headset',
+    },
+    {
+      name: 'Swift Ultralight Mouse',
+      description: 'A 58g ultralight gaming mouse with a 26K DPI optical sensor, PTFE feet, and a flexible paracord-style cable.',
+      price: 59.99,
+      stock: 55,
+      imageUrl: 'mouse',
+    },
+    {
+      name: 'Glide Vertical Mouse',
+      description: 'A vertical ergonomic mouse that keeps your wrist in a natural handshake position to reduce strain during long workdays.',
+      price: 49.99,
+      stock: 35,
+      imageUrl: 'mouse',
+    },
+    {
+      name: 'Vista 27" 4K Monitor',
+      description: 'A 27-inch 4K IPS monitor with USB-C 90W power delivery, factory colour calibration, and a height-adjustable stand.',
+      price: 379.99,
+      stock: 12,
+      imageUrl: 'monitor',
+    },
+    {
+      name: 'Halo LED Desk Lamp',
+      description: 'A dimmable LED desk lamp with a flicker-free light bar, auto-brightness sensor, and a USB-C charging port in the base.',
+      price: 44.99,
+      stock: 50,
+      imageUrl: 'lamp',
+    },
+    {
+      name: 'Orbit Monitor Light Bar Lamp',
+      description: 'A screen-mounted light bar lamp that lights your desk without glare on the display, with a wireless control puck.',
+      price: 69.99,
+      stock: 0,
+      imageUrl: 'lamp',
+    },
+    {
+      name: 'Nomad Sling Backpack',
+      description: 'A slim everyday sling backpack with a padded 14-inch laptop pocket, quick-access phone slot, and water-repellent fabric.',
+      price: 79.99,
+      stock: 28,
+      imageUrl: 'backpack',
+    },
   ];
 
-  if ((await prisma.product.count()) > 0) {
-    console.log('Products already exist, skipping sample products.');
-    return;
-  }
-
+  // Add each sample product only if no product with that name exists (archived ones included)
+  let created = 0;
   for (const product of products) {
-    await prisma.product.create({
-      data: product,
-    });
+    const existing = await prisma.product.findFirst({ where: { name: product.name } });
+    if (!existing) {
+      await prisma.product.create({
+        data: product,
+      });
+      created++;
+    }
   }
 
-  console.log(`Successfully seeded ${products.length} products.`);
+  console.log(`Added ${created} of ${products.length} sample products.`);
 }
 
 main()
