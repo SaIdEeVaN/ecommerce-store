@@ -2,6 +2,9 @@ import React from "react";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 
+// Live store metrics: render per request instead of prerendering at build time.
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboard() {
   // 1. Fetch count stats
   const ordersCount = await prisma.order.count();

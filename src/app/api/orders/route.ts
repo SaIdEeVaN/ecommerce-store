@@ -11,15 +11,22 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { items, totalAmount } = body;
+    const { items } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
 
+    for (const item of items) {
+      if (typeof item?.id !== "string" || !Number.isInteger(item.quantity) || item.quantity < 1) {
+        return NextResponse.json({ error: "Invalid order item" }, { status: 400 });
+      }
+    }
+
     // Process order creation and stock adjustment in a single Prisma transaction
     const order = await prisma.$transaction(async (tx) => {
-      // 1. Verify and update stock for all items
+      // 1. Verify and update stock for all items, pricing from the database (never trust client prices)
+      const orderItems: { productId: string; quantity: number; price: number }[] = [];
       for (const item of items) {
         const product = await tx.product.findUnique({
           where: { id: item.id }
@@ -42,20 +49,23 @@ export async function POST(req: Request) {
             }
           }
         });
+
+        orderItems.push({ productId: product.id, quantity: item.quantity, price: product.price });
       }
+
+      // Same pricing rules as the checkout page: free shipping over $150, 8% tax
+      const subtotal = orderItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+      const shippingCost = subtotal > 150 ? 0 : 15;
+      const totalAmount = subtotal + shippingCost + subtotal * 0.08;
 
       // 2. Create the Order
       const newOrder = await tx.order.create({
         data: {
           userId: session.user.id,
-          totalAmount: totalAmount,
+          totalAmount,
           status: "PENDING",
           orderItems: {
-            create: items.map((item: any) => ({
-              productId: item.id,
-              quantity: item.quantity,
-              price: item.price
-            }))
+            create: orderItems
           }
         },
         include: {
