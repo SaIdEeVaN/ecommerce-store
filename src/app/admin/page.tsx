@@ -8,7 +8,9 @@ export const dynamic = "force-dynamic";
 export default async function AdminDashboard() {
   // 1. Fetch count stats
   const ordersCount = await prisma.order.count();
-  const productsCount = await prisma.product.count();
+  const productsCount = await prisma.product.count({
+    where: { archived: false }
+  });
   const customersCount = await prisma.user.count({
     where: { role: "USER" }
   });

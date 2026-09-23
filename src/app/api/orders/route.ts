@@ -32,7 +32,7 @@ export async function POST(req: Request) {
           where: { id: item.id }
         });
 
-        if (!product) {
+        if (!product || product.archived) {
           throw new Error(`Product not found: ${item.name}`);
         }
 

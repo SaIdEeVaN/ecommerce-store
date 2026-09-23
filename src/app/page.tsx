@@ -18,7 +18,7 @@ export default async function Home({ searchParams }: PageProps) {
 
   // Build dynamic database query
   const query: any = {};
-  const conditions: any[] = [];
+  const conditions: any[] = [{ archived: false }];
   
   if (searchVal) {
     conditions.push({
@@ -60,9 +60,7 @@ export default async function Home({ searchParams }: PageProps) {
     }
   }
   
-  if (conditions.length > 0) {
-    query.where = { AND: conditions };
-  }
+  query.where = { AND: conditions };
   
   query.orderBy = { createdAt: "desc" };
 

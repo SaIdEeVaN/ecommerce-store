@@ -20,6 +20,7 @@ export async function GET() {
     }
 
     const products = await prisma.product.findMany({
+      where: { archived: false },
       orderBy: { createdAt: "desc" }
     });
     return NextResponse.json(products);

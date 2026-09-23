@@ -19,7 +19,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   });
 
   // Handle product not found
-  if (!product) {
+  if (!product || product.archived) {
     notFound();
   }
 

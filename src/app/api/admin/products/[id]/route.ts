@@ -32,7 +32,7 @@ export async function PUT(req: Request, { params }: ParamsProps) {
       where: { id }
     });
 
-    if (!existingProduct) {
+    if (!existingProduct || existingProduct.archived) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
@@ -66,22 +66,25 @@ export async function DELETE(req: Request, { params }: ParamsProps) {
       where: { id }
     });
 
-    if (!existingProduct) {
+    if (!existingProduct || existingProduct.archived) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // Delete relation items first if needed, but OrderItem has onDelete: Restrict by default?
-    // Wait! Let's check schema: OrderItem references product, but doesn't specify cascade delete.
-    // If we delete a product that has been ordered, DB will throw foreign key error!
-    // To solve this simply without breaking orders, we can delete the product's orderItems, or just try to delete the product directly.
-    // Let's delete orderItems for this product first, or cascade:
-    await prisma.orderItem.deleteMany({
+    // Products that appear in orders are archived rather than deleted so order history stays intact
+    const orderCount = await prisma.orderItem.count({
       where: { productId: id }
     });
 
-    await prisma.product.delete({
-      where: { id }
-    });
+    if (orderCount > 0) {
+      await prisma.product.update({
+        where: { id },
+        data: { archived: true }
+      });
+    } else {
+      await prisma.product.delete({
+        where: { id }
+      });
+    }
 
     return NextResponse.json({ message: "Product deleted successfully" });
   } catch (error: any) {
